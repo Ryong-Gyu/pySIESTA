@@ -31,6 +31,21 @@ def _copy_examples(example_path: str, work_dir: pathlib.Path, base_dir: pathlib.
 def _max_difference(matrix1, matrix2):
     return np.amax(np.abs(matrix1 - matrix2))
 
+def _add_bool_argument(parser: argparse.ArgumentParser, name: str, default: bool, help: Optional[str] = None) -> None:
+
+    def _str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
+    option = f"--{name}"
+    parser.add_argument(option, type=_str2bool, nargs='?', const=True, default=default, help=help)
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run local SIESTA self-consistent mixing loop")
@@ -38,6 +53,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-iters", type=int, default=50)
     parser.add_argument("--hamiltonian-convergence-eps", type=float, default=1e-5)
     parser.add_argument("--density-convergence-eps", type=float, default=1e-5)
+
     _add_bool_argument(parser, "verbose", default=True, help="Enable progress display and logging.")
 
     parser.add_argument("--exe", default=DEFAULT_EXE, help="Path to SIESTA executable")
@@ -53,29 +69,23 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional example path under examples/, e.g. molecular/0001. If set, example files are copied into work-dir.",
     )
+
+    parser.add_argument("--nproc", type=int, default=8)
+
     return parser
 
 
-def _add_bool_argument(
-    parser: argparse.ArgumentParser, name: str, default: bool, help: Optional[str] = None
-) -> None:
-    option = f"--{name}"
-    if hasattr(argparse, "BooleanOptionalAction"):
-        parser.add_argument(option, action=argparse.BooleanOptionalAction, default=default, help=help)
-        return
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(option, dest=name, action="store_true", help=help)
-    group.add_argument(f"--no-{name}", dest=name, action="store_false", help=help)
-    parser.set_defaults(**{name: default})
 
 
 def main() -> None:
     args = _build_parser().parse_args()
 
-    script_dir = pathlib.Path(__file__).resolve().parent
+    script_dir = pathlib.Path.cwd()
     work_dir = pathlib.Path(args.work_dir).resolve() if args.work_dir else script_dir
+    print(work_dir)
+
     work_dir.mkdir(parents=True, exist_ok=True)
+
 
     if args.problem:
         _copy_examples(args.problem, work_dir=work_dir, base_dir=script_dir)
@@ -97,7 +107,7 @@ def main() -> None:
         weight_decay=args.optimizer_weight_decay,
     )
 
-    cmd = f"{args.exe} < RUN.fdf  > stdout.txt"
+    cmd = f"mpirun -np {args.nproc} {args.exe} < RUN.fdf  > stdout.txt"
     dH_history, dD_history = [], []
 
     total_loop = range(args.max_iters)
