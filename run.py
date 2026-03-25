@@ -13,7 +13,9 @@ from src import siesta_io
 from src import units
 
 
-DEFAULT_EXE = "/home2/rong/00.Development/0.GitHub/8.KS-DFT_local/siesta"
+
+script_path = pathlib.Path(__file__).resolve().parent
+DEFAULT_EXE = f"{script_path}/src/siesta"
 
 
 def _copy_examples(example_path: str, work_dir: pathlib.Path, base_dir: pathlib.Path) -> None:
@@ -80,15 +82,15 @@ def _build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = _build_parser().parse_args()
 
-    script_dir = pathlib.Path.cwd()
-    work_dir = pathlib.Path(args.work_dir).resolve() if args.work_dir else script_dir
+    current_dir = pathlib.Path.cwd()
+    work_dir = pathlib.Path(args.work_dir).resolve() if args.work_dir else current_dir
     print(work_dir)
 
     work_dir.mkdir(parents=True, exist_ok=True)
 
 
     if args.problem:
-        _copy_examples(args.problem, work_dir=work_dir, base_dir=script_dir)
+        _copy_examples(args.problem, work_dir=work_dir, base_dir=current_dir)
 
     run_fdf = work_dir / "RUN.fdf"
     if not run_fdf.exists():
