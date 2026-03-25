@@ -1,6 +1,4 @@
 # @package _group_
-name: SGD
-lr: 0.5
-momentum: 0.1
-nesterov: True
-weight_decay: 0.0
+# Legacy alias kept for compatibility; this now maps to linear mixing.
+name: linear
+alpha: 0.5
