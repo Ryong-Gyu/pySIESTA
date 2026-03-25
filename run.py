@@ -5,7 +5,6 @@ import shutil
 from typing import Optional
 
 import numpy as np
-import torch
 import tqdm
 
 from src import getters
@@ -60,11 +59,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--exe", default=DEFAULT_EXE, help="Path to SIESTA executable")
 
-    parser.add_argument("--optimizer-name", default="SGD")
-    parser.add_argument("--optimizer-lr", type=float, default=0.5)
-    parser.add_argument("--optimizer-momentum", type=float, default=0.0)
-    _add_bool_argument(parser, "optimizer-nesterov", default=False, help="Enable Nesterov momentum.")
-    parser.add_argument("--optimizer-weight-decay", type=float, default=0.0)
+    parser.add_argument("--optimizer-name", default="linear", help="Mixer type: linear or pulay")
+    parser.add_argument("--optimizer-alpha", type=float, default=0.5, help="Linear mixing factor")
+    parser.add_argument("--optimizer-history-size", type=int, default=6, help="History size for Pulay mixer")
+    parser.add_argument("--optimizer-regularization", type=float, default=1e-10, help="Ridge term for Pulay linear solve")
 
     parser.add_argument(
         "--problem",
@@ -101,12 +99,11 @@ def main() -> None:
 
     os.chdir(work_dir)
 
-    optimizer_initializer = getters.get_optimizer(
+    mixer_initializer = getters.get_mixer(
         name=args.optimizer_name,
-        lr=args.optimizer_lr,
-        momentum=args.optimizer_momentum,
-        nesterov=args.optimizer_nesterov,
-        weight_decay=args.optimizer_weight_decay,
+        alpha=args.optimizer_alpha,
+        history_size=args.optimizer_history_size,
+        regularization=args.optimizer_regularization,
     )
 
     cmd = f"mpirun -np {args.nproc} {args.exe} < RUN.fdf  > stdout.txt"
@@ -126,9 +123,7 @@ def main() -> None:
             nb3, ns3, numd3, listdptr3, listd3, Dold = siesta_io.readDM("D_old")
             nb4, ns4, numd4, listdptr4, listd4, Hold = siesta_io.readDM("H_old")
 
-            s = torch.zeros_like(torch.Tensor(H))
-            s.grad = torch.zeros_like(torch.Tensor(H))
-            optimizer = optimizer_initializer(params=[s])
+            mixer = mixer_initializer()
             f = open("log.txt", "w")
 
         dH = _max_difference(Hold, H) / units.eV
@@ -145,13 +140,11 @@ def main() -> None:
             np.save("dD_history", np.array(dD_history))
             break
 
-        s[:] = torch.Tensor(H)
-        s.grad[:] = torch.Tensor(H - Hold)
-        optimizer.step()
+        mixed_hamiltonian = mixer.mix(x_out=H, x_in=Hold)
 
-        Hold[:] = s.numpy()
+        Hold[:] = mixed_hamiltonian
         Dold[:] = D
-        siesta_io.writeDM("H_IN", nb2, ns2, numd2, listdptr2, listd2, s.numpy())
+        siesta_io.writeDM("H_IN", nb2, ns2, numd2, listdptr2, listd2, mixed_hamiltonian)
 
         Rho = siesta_io.readGrid("RHO_in")
         Vxc = siesta_io.readGrid("Vxc_out")

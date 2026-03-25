@@ -1,0 +1,5 @@
+# @package _group_
+name: pulay
+alpha: 0.5
+history_size: 6
+regularization: 1.0e-10
