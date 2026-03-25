@@ -1,7 +1,7 @@
 import functools
 from typing import Callable
 
-from src.optimizer import LinearMixer, PulayMixer
+from pysiesta.utils.optimizer import LinearMixer, PulayMixer
 
 
 def get_mixer(name: str, **kwargs) -> Callable[[], object]:

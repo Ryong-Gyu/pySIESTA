@@ -7,13 +7,13 @@ import pathlib
 import numpy as np
 
 from pysiesta.config import add_cli_arguments, load_config, refresh_config
-from src import getters
-from src import siesta_io
-from src import units
+from pysiesta.utils import getters
+from pysiesta.utils import siesta_io
+from pysiesta.utils import units
 
 
 script_path = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_EXE = f"{script_path}/src/siesta"
+DEFAULT_EXE = f"{script_path}/pysiesta/utils/siesta"
 
 
 def _max_difference(matrix1, matrix2):
