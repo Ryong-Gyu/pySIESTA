@@ -1,10 +1,10 @@
 import glob
 import struct
 
-from src.fortranfile import FortranFile
+from pysiesta.utils.fortranfile import FortranFile
 import numpy as np
 
-from src import units
+from pysiesta.utils import units
 
 
 def readGrid(fname):
