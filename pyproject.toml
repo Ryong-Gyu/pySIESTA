@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pysiesta"
+version = "0.1.0"
+description = "Python SCF mixing driver for SIESTA workflows"
+readme = "README.MD"
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+authors = [
+  { name = "pySIESTA Developers" }
+]
+dependencies = [
+  "numpy>=1.23",
+  "PyYAML>=6.0"
+]
+
+[project.scripts]
+pysiesta = "pysiesta.app:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pysiesta*"]
+exclude = ["src*", "test*", "examples*"]
