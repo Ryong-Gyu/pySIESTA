@@ -1,0 +1,69 @@
+#(1) General system descriptors
+
+SystemName       Graphene           # Descriptive name of the system
+SystemLabel      Graphene           # Short name for naming files
+
+NumberOfAtoms    2           # Number of atoms
+NumberOfSpecies  1           # Number of species
+
+%block ChemicalSpeciesLabel
+1 6 C
+%endblock ChemicalSpeciesLabel
+
+#(2) Basis definition
+
+PAO.BasisType    split
+PAO.BasisSize    SZ
+PAO.EnergyShift  100.000 meV
+PAO.SplitNorm    0.150
+
+
+#(3) Lattice, coordinates, k-sampling
+
+LatticeConstant       1.000000000 Ang
+%block LatticeVectors
+    2.450851893     0.000000000     0.000000000
+    1.225425946     2.122500000     0.000000000
+    0.000000000     0.000000000    15.000000000
+%endblock LatticeVectors
+
+AtomicCoordinatesFormat Ang
+%block AtomicCoordinatesAndAtomicSpecies
+    0.000000000     0.000000000     0.000000000    1    1    # location, chemical species, order
+    1.225425946     0.707500000     0.000000000    1    2
+%endblock AtomicCoordinatesAndAtomicSpecies
+
+%block kgrid_Monkhorst_Pack
+   2   0   0   0.000000
+   0   2   0   0.000000
+   0   0   1   0.000000
+%endblock kgrid_Monkhorst_Pack
+
+
+#(4) DFT, Grid, SCF
+
+XC.functional         LDA           # LDA or GGA (default = LDA)
+XC.authors            CA            # CA (Ceperley-Aldr) = PZ
+MeshCutoff            500.000000    Ry      # Default: 50.0 Ry ~ 0.444 Bohr
+                                    #         100.0 Ry ~ 0.314 Bohr
+MaxSCFIterations      1             # Default: 50
+DM.MixingWeight       0.05000          # Default: 0.25
+DM.NumberPulay        8             # Default: 0
+DM.PulayOnFile        F             # SystemLabel.P1, SystemLabel.P2
+
+DM.Tolerance          1.d-4         # Default: 1.d-4
+DM.UseSaveDM          .false.        # because of the bug
+SCFMustConverge       .false.        
+NeglNonOverlapInt     F             # Default: F
+Write.H.end.of.cycle   .true.      
+
+#(5) Eigenvalue problem: order-N or diagonalization
+
+SolutionMethod        Diagon 
+ElectronicTemperature 300.0 K       # Default: 300.0 K
+Diag.ParallelOverK     F
+
+SlabDipoleCorrection  T 
+
+SCF.Mix.First      .false.
+Read.H.from.file   .true.

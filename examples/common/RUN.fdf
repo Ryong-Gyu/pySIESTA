@@ -1,0 +1,48 @@
+#(1) General system descriptors
+
+SystemName       Molecular           # Descriptive name of the system
+SystemLabel      Molecular           # Short name for naming files
+%include STRUCT.fdf
+
+#(2) Basis definition
+
+PAO.BasisType    split
+PAO.BasisSize    DZP
+PAO.EnergyShift  100.000 meV
+PAO.SplitNorm    0.150
+
+
+#(3) Kpoint Sampling
+
+%block kgrid_Monkhorst_Pack
+   1   0   0   0.000000
+   0   1   0   0.000000
+   0   0   1   0.000000
+%endblock kgrid_Monkhorst_Pack
+
+
+#(4) DFT, Grid, SCF
+
+XC.functional         GGA           # LDA or GGA (default = LDA)
+XC.authors            PBE            # CA (Ceperley-Aldr) = PZ
+MeshCutoff            500.000000    Ry      # Default: 50.0 Ry ~ 0.444 Bohr
+                                    #         100.0 Ry ~ 0.314 Bohr
+MaxSCFIterations      1             # Default: 50
+DM.MixingWeight       0.05000          # Default: 0.25
+DM.NumberPulay        8             # Default: 0
+DM.PulayOnFile        F             # SystemLabel.P1, SystemLabel.P2
+
+DM.Tolerance          1.d-4         # Default: 1.d-4
+DM.UseSaveDM          .false.        # because of the bug
+SCFMustConverge       .false.        
+NeglNonOverlapInt     F             # Default: F
+Write.H.end.of.cycle   .true.      
+
+#(5) Eigenvalue problem: order-N or diagonalization
+
+SolutionMethod        Diagon 
+ElectronicTemperature 300.0 K       # Default: 300.0 K
+Diag.ParallelOverK     F
+
+SCF.Mix.First      .false.
+Read.H.from.file   .true.

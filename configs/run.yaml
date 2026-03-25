@@ -1,0 +1,19 @@
+hydra:
+    run:
+        dir: ./outputs/${now:%Y-%m-%d}/${problem}
+
+defaults:
+    - optimizer: linear
+
+# Loop
+max_iters: 50
+hamiltonian_convergence_eps: 1e-5
+density_convergence_eps: 1e-5
+verbose: True
+
+# MPI settings
+exe: /home2/rong/00.Development/0.GitHub/8.KS-DFT_local/siesta
+num_procs: 4
+
+# Problem to solve
+problem: molecular/0001
