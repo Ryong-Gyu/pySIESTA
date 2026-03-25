@@ -2,6 +2,7 @@ import argparse
 import os
 import pathlib
 import shutil
+from typing import Optional
 
 import numpy as np
 import torch
@@ -37,14 +38,14 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-iters", type=int, default=50)
     parser.add_argument("--hamiltonian-convergence-eps", type=float, default=1e-5)
     parser.add_argument("--density-convergence-eps", type=float, default=1e-5)
-    parser.add_argument("--verbose", action=argparse.BooleanOptionalAction, default=True)
+    _add_bool_argument(parser, "verbose", default=True, help="Enable progress display and logging.")
 
     parser.add_argument("--exe", default=DEFAULT_EXE, help="Path to SIESTA executable")
 
     parser.add_argument("--optimizer-name", default="SGD")
     parser.add_argument("--optimizer-lr", type=float, default=0.5)
     parser.add_argument("--optimizer-momentum", type=float, default=0.0)
-    parser.add_argument("--optimizer-nesterov", action=argparse.BooleanOptionalAction, default=False)
+    _add_bool_argument(parser, "optimizer-nesterov", default=False, help="Enable Nesterov momentum.")
     parser.add_argument("--optimizer-weight-decay", type=float, default=0.0)
 
     parser.add_argument(
@@ -53,6 +54,20 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Optional example path under examples/, e.g. molecular/0001. If set, example files are copied into work-dir.",
     )
     return parser
+
+
+def _add_bool_argument(
+    parser: argparse.ArgumentParser, name: str, default: bool, help: Optional[str] = None
+) -> None:
+    option = f"--{name}"
+    if hasattr(argparse, "BooleanOptionalAction"):
+        parser.add_argument(option, action=argparse.BooleanOptionalAction, default=default, help=help)
+        return
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(option, dest=name, action="store_true", help=help)
+    group.add_argument(f"--no-{name}", dest=name, action="store_false", help=help)
+    parser.set_defaults(**{name: default})
 
 
 def main() -> None:
