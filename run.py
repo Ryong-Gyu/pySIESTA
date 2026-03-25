@@ -17,18 +17,6 @@ script_path = pathlib.Path(__file__).resolve().parent
 DEFAULT_EXE = f"{script_path}/src/siesta"
 
 
-def _copy_examples(example_path: str, work_dir: pathlib.Path, base_dir: pathlib.Path) -> None:
-    def _copy_all_files_in_work_dir(src: str) -> None:
-        example_dir = base_dir / src
-        if not example_dir.exists():
-            raise FileNotFoundError(f"Example directory not found: {example_dir}")
-        for f in example_dir.glob("*"):
-            shutil.copy(f, work_dir)
-
-    _copy_all_files_in_work_dir("examples/common")
-    _copy_all_files_in_work_dir(f"examples/{example_path}")
-
-
 def _max_difference(matrix1, matrix2):
     return np.amax(np.abs(matrix1 - matrix2))
 
@@ -50,46 +38,26 @@ def _add_bool_argument(parser: argparse.ArgumentParser, name: str, default: bool
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run local SIESTA self-consistent mixing loop")
-    parser.add_argument("--work-dir", default=None, help="Working directory that contains RUN.fdf")
+
     parser.add_argument("--max-iters", type=int, default=50)
-    parser.add_argument("--hamiltonian-convergence-eps", type=float, default=1e-5)
-    parser.add_argument("--density-convergence-eps", type=float, default=1e-5)
-
-    _add_bool_argument(parser, "verbose", default=True, help="Enable progress display and logging.")
-
-    parser.add_argument("--exe", default=DEFAULT_EXE, help="Path to SIESTA executable")
+    parser.add_argument("--hamiltonian-convergence-eps", type=float, default=1e-4)
+    parser.add_argument("--density-convergence-eps", type=float, default=1e-3)
 
     parser.add_argument("--optimizer-name", default="linear", help="Mixer type: linear or pulay")
     parser.add_argument("--optimizer-alpha", type=float, default=0.5, help="Linear mixing factor")
     parser.add_argument("--optimizer-history-size", type=int, default=6, help="History size for Pulay mixer")
     parser.add_argument("--optimizer-regularization", type=float, default=1e-10, help="Ridge term for Pulay linear solve")
 
-    parser.add_argument(
-        "--problem",
-        default=None,
-        help="Optional example path under examples/, e.g. molecular/0001. If set, example files are copied into work-dir.",
-    )
-
+    parser.add_argument("--exe", default=DEFAULT_EXE, help="Path to SIESTA executable")
     parser.add_argument("--nproc", type=int, default=8)
 
     return parser
 
-
-
-
 def main() -> None:
     args = _build_parser().parse_args()
 
-    current_dir = pathlib.Path.cwd()
-    work_dir = pathlib.Path(args.work_dir).resolve() if args.work_dir else current_dir
-    print(work_dir)
-
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-
-    if args.problem:
-        _copy_examples(args.problem, work_dir=work_dir, base_dir=current_dir)
-
+    # Read RUN.fdf
+    work_dir = pathlib.Path.cwd()
     run_fdf = work_dir / "RUN.fdf"
     if not run_fdf.exists():
         raise FileNotFoundError(
@@ -97,8 +65,7 @@ def main() -> None:
             "Put RUN.fdf in the working directory or use --problem to copy an example first."
         )
 
-    os.chdir(work_dir)
-
+    # Initialize SCF mixer
     mixer_initializer = getters.get_mixer(
         name=args.optimizer_name,
         alpha=args.optimizer_alpha,
@@ -109,11 +76,8 @@ def main() -> None:
     cmd = f"mpirun -np {args.nproc} {args.exe} < RUN.fdf  > stdout.txt"
     dH_history, dD_history = [], []
 
-    total_loop = range(args.max_iters)
-    if args.verbose:
-        total_loop = tqdm.tqdm(total_loop)
-
-    for iscf in total_loop:
+    # SCF loop
+    for iscf in range(1,args.max_iters+1):
         os.system(cmd)
 
         nb1, ns1, numd1, listdptr1, listd1, D = siesta_io.readDM("D_new")
@@ -131,9 +95,8 @@ def main() -> None:
         dH_history.append(dH)
         dD_history.append(dD)
 
-        if args.verbose:
-            total_loop.set_description(f"dH: {dH:.8f} dD: {dD:.8f}")
-            f.write(f"iscf: {iscf} dH: {dH:.8f} dD: {dD:.8f}\n")
+        print(f"iscf: {iscf} dH: {dH:.8f} dD: {dD:.8f}\n")
+        f.write(f"iscf: {iscf} dH: {dH:.8f} dD: {dD:.8f}\n")
 
         if (dH < args.hamiltonian_convergence_eps) and (dD < args.density_convergence_eps):
             np.save("dH_history", np.array(dH_history))
@@ -145,11 +108,6 @@ def main() -> None:
         Hold[:] = mixed_hamiltonian
         Dold[:] = D
         siesta_io.writeDM("H_IN", nb2, ns2, numd2, listdptr2, listd2, mixed_hamiltonian)
-
-        Rho = siesta_io.readGrid("RHO_in")
-        Vxc = siesta_io.readGrid("Vxc_out")
-        np.save(f"Rho_{iscf}", Rho)
-        np.save(f"Vxc_{iscf}", Vxc)
 
     f.close()
 
