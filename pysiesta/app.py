@@ -15,7 +15,6 @@ from pysiesta.utils import units
 script_path = pathlib.Path(__file__).resolve().parent.parent
 DEFAULT_EXE = f"{script_path}/pysiesta/utils/siesta"
 
-
 def _max_difference(matrix1, matrix2):
     return np.amax(np.abs(matrix1 - matrix2))
 
@@ -46,9 +45,11 @@ def main() -> None:
     )
     mixer = mixer_initializer()
 
-    cmd = f"mpirun -np {config.nproc} {exe} < RUN.fdf  > stdout.txt"
+    cmd = f"mpirun -np {config.nproc} {exe} < RUN.fdf >> stdout.txt 2>&1"
     dH_history, dD_history = [], []
 
+    # initial running
+    os.system(cmd)
     nb3, ns3, numd3, listdptr3, listd3, Dold = siesta_io.readDM("D_old")
     nb4, ns4, numd4, listdptr4, listd4, Hold = siesta_io.readDM("H_old")
 
@@ -66,6 +67,7 @@ def main() -> None:
 
             print(f"iscf: {iscf} dH: {dH:.8f} dD: {dD:.8f}")
             f.write(f"iscf: {iscf} dH: {dH:.8f} dD: {dD:.8f}\n")
+            os.system(f"echo '{iscf} dH: {dH:.8f} dD: {dD:.8f}' >> file.txt")
 
             if (dH < config.hamiltonian_convergence_eps) and (dD < config.density_convergence_eps):
                 np.save("dH_history", np.array(dH_history))

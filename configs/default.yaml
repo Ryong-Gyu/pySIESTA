@@ -1,10 +1,10 @@
 max_iters: 50
-hamiltonian_convergence_eps: 1.0e-4
-density_convergence_eps: 1.0e-3
+hamiltonian_convergence_eps: 1.0e-3
+density_convergence_eps: 1.0e-4
 nproc: 8
 exe: ""
 optimizer:
-  name: linear
+  name: pulay
   alpha: 0.5
   history_size: 6
   regularization: 1.0e-10

@@ -1,14 +1,7 @@
-hydra:
-    run:
-        dir: ./outputs/${now:%Y-%m-%d}/${problem}
-
-defaults:
-    - optimizer: linear
-
 # Loop
 max_iters: 50
-hamiltonian_convergence_eps: 1e-5
-density_convergence_eps: 1e-5
+hamiltonian_convergence_eps: 1e-4
+density_convergence_eps: 1e-3
 verbose: True
 
 # MPI settings
